@@ -1,5 +1,6 @@
 import streamlit as st
 from .logic import run_marketplace_simulation, process_simulation_results_for_display
+from .logic import DEFAULT_BUYER_PROMPT_KEY, DEFAULT_SELLER_PROMPT_KEY
 from core.llm_client import get_api_key, configure_llm_client # For LLM agent type
 from core.prompt_manager import get_prompt # For LLM agent type, to pass to LLMAgent
 from core import llm_client as llm_client_module # To pass the module itself
@@ -54,6 +55,18 @@ def render_marketplace_module():
         else:
             st.sidebar.warning("LLM Client not configured. Please enter API key above.")
             # No need to call get_api_key() again here, configure_llm_client() handles it.
+            
+            if llm_configured_successfully: # Only show prompt key inputs if LLM is configured
+                st.session_state.buyer_llm_prompt_key_override = st.sidebar.text_input(
+                    "Buyer LLM Prompt Key (optional)",
+                    value=st.session_state.get("buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY),
+                    key="buyer_llm_prompt_key_override_input"
+                )
+                st.session_state.seller_llm_prompt_key_override = st.sidebar.text_input(
+                    "Seller LLM Prompt Key (optional)",
+                    value=st.session_state.get("seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY),
+                    key="seller_llm_prompt_key_override_input"
+                )
 
     st.sidebar.markdown("---")
     # Simulation Parameters
@@ -98,8 +111,9 @@ def render_marketplace_module():
             
             # Add prompt keys if LLM agents are used
             if st.session_state.marketplace_agent_type == "llm":
-                buyer_config["llm_persona_prompt_key"] = "buyer_default" # Or make this configurable
-                seller_config["llm_persona_prompt_key"] = "seller_default"
+                # Use the override from session_state if available, otherwise default
+                buyer_config["llm_persona_prompt_key"] = st.session_state.get("buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY)
+                seller_config["llm_persona_prompt_key"] = st.session_state.get("seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY)
 
 
             with st.spinner("Running simulation..."):

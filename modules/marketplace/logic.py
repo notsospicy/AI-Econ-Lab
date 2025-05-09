@@ -1,3 +1,5 @@
+DEFAULT_BUYER_PROMPT_KEY = "buyer_default"
+DEFAULT_SELLER_PROMPT_KEY = "seller_default"
 # Component of Phase 1-2: Marketplace Module &amp; LLM Agent Integration
 import random
 from typing import List, Dict, Any, Optional, Tuple
@@ -46,7 +48,7 @@ def setup_simulation_agents(
                 raise ValueError("LLMClient and PromptManager instances are required for LLMAgents.")
             # Ensure llm_persona_prompt_key is set, e.g. from buyer_config_template
             if "llm_persona_prompt_key" not in specific_buyer_config:
-                 specific_buyer_config["llm_persona_prompt_key"] = "buyer_default" # Default if not specified
+                 specific_buyer_config["llm_persona_prompt_key"] = DEFAULT_BUYER_PROMPT_KEY # Default if not specified
             config_llm = AgentConfig(**specific_buyer_config) # Re-create with potentially added key
             agents.append(LLMAgent(config=config_llm, llm_client=llm_client_instance, prompt_manager=prompt_manager_instance))
         else:
@@ -73,7 +75,7 @@ def setup_simulation_agents(
             if not llm_client_instance or not prompt_manager_instance:
                 raise ValueError("LLMClient and PromptManager instances are required for LLMAgents.")
             if "llm_persona_prompt_key" not in specific_seller_config:
-                 specific_seller_config["llm_persona_prompt_key"] = "seller_default" # Default if not specified
+                 specific_seller_config["llm_persona_prompt_key"] = DEFAULT_SELLER_PROMPT_KEY # Default if not specified
             config_llm = AgentConfig(**specific_seller_config)
             agents.append(LLMAgent(config=config_llm, llm_client=llm_client_instance, prompt_manager=prompt_manager_instance))
         else:

@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Literal, Optional
 import random # For RuleBasedAgent decisions
 import logging
 import json
+from jinja2 import Template
 
 # Placeholder imports - these modules will be created/fleshed out later
 # from .llm_client import generate_text # Assuming direct import for now
@@ -221,39 +222,48 @@ class LLMAgent(Agent):
             "market_asks_summary": self._format_market_summary([a for a in market_state.asks if a.bid_ask_type == 'ask']),
         }
         
-        # Remove keys from context that are not in the prompt template to avoid errors with .format()
-        # A more robust templating engine like Jinja2 would handle this better.
-        # For f-strings or .format(), all keys in the template must be in the context.
-        # For now, assume prompt_template.format will handle missing keys gracefully or
-        # that prompts are designed to use available keys.
-        # A simple way is to filter context based on what's in the prompt string, but that's fragile.
-        # Let's assume the prompt YAML has placeholders for all these.
-        
         try:
-            # The prompt YAMLs have sections like 'persona', 'instructions', 'output_format_notes'
-            # We need to decide how to combine these and format them.
-            # For now, let's assume get_prompt returns a dictionary and we use 'instructions'.
+            instructions_template_str: Optional[str] = None
             if isinstance(prompt_template, dict) and "instructions" in prompt_template:
-                formatted_prompt = prompt_template["instructions"].format(**context)
-                if "persona" in prompt_template:
-                     formatted_prompt = f"{prompt_template['persona']}\n\n{formatted_prompt}"
-                if "output_format_notes" in prompt_template:
-                    formatted_prompt = f"{formatted_prompt}\n\n{prompt_template['output_format_notes']}"
-
-            elif isinstance(prompt_template, str): # If get_prompt just returns the full string
-                 formatted_prompt = prompt_template.format(**context)
+                instructions_template_str = prompt_template["instructions"]
+            elif isinstance(prompt_template, str):
+                instructions_template_str = prompt_template # The whole thing is the instruction
             else:
-                print(f"Error: Prompt for key {self.llm_persona_prompt_key} is not a string or expected dict.")
+                logging.error(f"Prompt for key {self.llm_persona_prompt_key} is not a string or expected dict.")
                 return None
 
-        except KeyError as e:
-            print(f"Error formatting prompt {self.llm_persona_prompt_key}: Missing key {e}")
-            # Potentially log the prompt and context for debugging
-            # print(f"Prompt template: {prompt_template}")
-            # print(f"Context: {context}")
+            if instructions_template_str is None: # Should be caught above, but defensive
+                 logging.error(f"Could not extract instruction string for agent {self.agent_id} from prompt: {prompt_template}")
+                 return None
+
+            try:
+                template = Template(instructions_template_str)
+                formatted_instructions = template.render(context)
+            except Exception as e:
+                logging.error(f"Error rendering prompt template for agent {self.agent_id}: {e}")
+                # Allow the broader try-except to catch if it leads to failure or handle more directly
+                # For now, logging and letting it proceed. If rendering fails, formatted_instructions won't be set.
+                # This could lead to an UnboundLocalError if not handled.
+                # A safer approach:
+                # self.log_decision_error(f"Failed to render prompt template: {e}") # if such a method exists
+                return None # Exit if template rendering fails
+
+            # Assemble full prompt text
+            full_prompt_text = formatted_instructions
+            if isinstance(prompt_template, dict):
+                if "persona" in prompt_template:
+                    full_prompt_text = f"{prompt_template['persona']}\n\n{full_prompt_text}"
+                if "output_format_notes" in prompt_template:
+                    full_prompt_text = f"{full_prompt_text}\n\n{prompt_template['output_format_notes']}"
+            
+            # The variable 'formatted_prompt' is now 'full_prompt_text'
+            # Ensure subsequent code uses 'full_prompt_text'
+
+        except KeyError as e: # This might still be relevant if prompt_template dict access fails for persona/output_format
+            logging.error(f"Error accessing parts of prompt {self.llm_persona_prompt_key}: Missing key {e}")
             return None
         except Exception as e:
-            print(f"An unexpected error occurred during prompt formatting: {e}")
+            logging.error(f"An unexpected error occurred during prompt assembly for agent {self.agent_id}: {e}")
             return None
 
 
@@ -261,7 +271,7 @@ class LLMAgent(Agent):
         # print(formatted_prompt)
         # print("--------------------------------------------------------------------")
 
-        llm_response_text = self.llm_client.generate_text(prompt=formatted_prompt)
+        llm_response_text = self.llm_client.generate_text(prompt=full_prompt_text)
 
         if not llm_response_text:
             print(f"LLM Agent {self.agent_id} received no response from LLM.")
