@@ -1,51 +1,49 @@
-# PLAN.MD: 
+# PLAN.MD: AI Econ Lab
 
 ## 1. Project Vision & Mission
 
 **Vision:** To be a premier interactive educational platform that empowers technically-minded individuals, particularly programmers, to deeply understand complex economic, entrepreneurial, and behavioral principles through hands-on experimentation with and critical analysis of Large Language Models (LLMs).
 
 **Mission:**
-*   To provide engaging, memorable, and intellectually stimulating learning experiences that bridge the gap between economic theory, practical application, and cutting-edge AI technology.
-*   To foster critical thinking about the capabilities, limitations, biases, and ethical implications of LLMs when applied to economic and decision-making contexts.
+*   To provide engaging, memorable, and intellectually stimulating learning experiences that bridge the gap between economics in both theory or practice and the world of programming.
 *   To equip users with a foundational understanding of key concepts that can inform their professional development, entrepreneurial pursuits, and personal financial literacy.
 *   To cultivate an appreciation for the interplay between individual behavior, market forces, policy decisions, and technological innovation.
 
 ## 2. Target Audience
 
 *   **Primary:** Programmers, software developers, data scientists, and other technically proficient individuals (students and professionals) who are curious about economics, entrepreneurship, and the application of AI in these domains.
-*   **Secondary:** Students of economics, business, or public policy with an interest in technology and AI. Individuals interested in practical applications of behavioral science.
+*   **Secondary:** Students of economics, business, or public policy with an interest in technology and AI. Individuals interested in practical applications of behavioral science. (Although the level of sophistication is kept low on purpose to focus more on the primary target demographic)
 
 **Assumed User Characteristics:**
 *   Comfortable with digital interfaces and abstract concepts.
 *   Possesses analytical thinking skills.
 *   Likely has some familiarity with AI/LLMs at a user level.
+*   Curious to learn in general.
 *   Motivated by learning through doing, experimentation, and understanding underlying mechanisms.
 
 ## 3. Core Philosophy & Guiding Principles
 
 1.  **Interactive Experimentation Over Passive Learning:** Learning is achieved by doing, simulating, and observing outcomes.
-2.  **Critical AI Engagement:** LLMs are tools for learning and exploration, not infallible oracles. The platform will encourage users to compare, critique, and understand the nuances of LLM behavior.
+2.  **Critical AI Engagement:** LLMs are tools for learning and exploration, not infallible oracles. The platform will encourage users to compare, critique, and understand the nuances of LLM behavior in the context of their journey through topics.
 3.  **Conceptual Depth with Practical Relevance:** Connect foundational theories to real-world applications and decisions relevant to the target audience.
-4.  **Ethical Awareness by Design:** Integrate discussions and considerations of ethics, bias, and responsible AI usage directly into the learning modules.
-5.  **Clarity and Accessibility of Complex Ideas:** Demystify jargon and present sophisticated concepts in an understandable and engaging manner.
-6.  **Modular and Extensible Design:** The platform should be conceived as a growing ecosystem of learning modules.
-7.  **Intellectual Curiosity and "Aha!" Moments:** Strive to create experiences that spark curiosity and lead to profound insights.
+4.  **Clarity and Accessibility of Complex Ideas:** Demystify jargon and present sophisticated concepts in an understandable and engaging manner.
+5.  **Modular and Extensible Design:** The platform should be conceived as a growing ecosystem of learning modules. Although it will fundamentally be structured by the opening 'classes' on the following topics elaborated on in greater detail later: The Multi-Agent LLM,Marketplace, LLM Negotiators & Game Theory Introduction, LLM VentureLab, Policy & Prosperity, NudgeCraft andMarketNav AI.
 
 ## 4. High-Level Platform Features (Conceptual)
 
 *   **Interactive Learning Modules:** A suite of distinct modules, each focusing on specific economic, entrepreneurial, or behavioral themes.
-*   **LLM Integration Engine:** A core system allowing for the dynamic use of various LLMs (or LLM personas through prompting) within simulations and interactive exercises.
-*   **Comparative LLM Analysis Interface:** Mechanisms enabling users to run scenarios with different LLM configurations and visually compare their outputs, behaviors, and "reasoning."
+*   **LLM Integration Engine:** A core system allowing for the dynamic use of various LLMs (or LLM personas through prompting) within simulations and interactive exercises. This should mainly be supported by a user supplied API key for Google AI Studio (adhering to free tier rate limits)
+*   **Comparative LLM Analysis Interface:** Mechanisms enabling users to run scenarios with different LLM configurations and visually compare their outputs, behaviors, and "reasoning". Potentially using the context of the application to explore the effect of model parameter size, reasoning and more on economic decision making.
 *   **Scenario Customization (Basic):** User ability to input simple parameters or make choices that influence the simulations.
-*   **Educational Content Delivery:** Clear explanations of concepts, definitions, and contextual information supporting the interactive elements.
+*   **Educational Content Delivery:** Clear explanations of concepts, definitions, and contextual information supporting the interactive elements. The greatest goal of this program shall be to educated the user in the described engaging way.
 *   **Guided Reflection Prompts:** Questions and prompts to encourage users to think critically about what they observe and learn.
-*   **User Journey Management:** A system to guide users through modules and track their conceptual progression (though not necessarily formal "grading").
+*   **User Journey Management:** A system to guide users through modules and track their conceptual progression (though not necessarily formal "grading"). Initially lead through the opening 'classes' elaborated on above.
 
 ## 5. Modular Course Structure Overview
 
 The "AI Econ Lab" will be structured as a series of distinct, yet thematically connected, modules. Users can ideally engage with modules in any order, though some may build conceptually on others. Each module will be a self-contained learning experience.
 
-**Current Planned Modules:**
+**Current Planned Modules for the Opening 'Classes':**
 1.  The Multi-Agent LLM Marketplace
 2.  LLM Negotiators & Game Theory Introduction
 3.  LLM VentureLab: From Idea to Early Pitch Strategy
