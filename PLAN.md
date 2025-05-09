@@ -207,9 +207,11 @@ For each module, the conceptual plan includes:
 
 *   **Community Features:** Allow users to share anonymized simulation setups or interesting LLM responses/comparisons (with strong privacy controls).
 *   **Advanced Customization:** More granular control over simulation parameters or LLM prompting for advanced users.
-*   **New Module Development:** Continuously add modules on other relevant economic, business, or societal topics where LLM experimentation can provide value.
 *   **Integration of Real-World Data (Optional & Complex):** Potentially allow simulations to be influenced by (simplified, anonymized) real-world data streams for certain modules.
 *   **Personalized Learning Paths:** Guide users to modules based on their stated interests or performance in previous modules.
 *   **Authoring Tools:** (Very long-term) Allow educators to create their own simple LLM-based interactive scenarios within the platform.
 *   **Localized Content:** Translate the platform and its educational content into other languages.
 *   **Expaning LLM offering:** Expand on the supported AI model APIs, to both enhance the potential upper limit of LLM use through routing mechanisms and also expand on the on the paid offerings to offer even more user freedom.
+
+*   **New Module Development:** Continuously add modules on other relevant economic, business, or societal topics where LLM experimentation can provide value.
+- Examples: modelling financial crisis using LLM based event simulations and thus teaching about fiscal policies and policies in general; look at the how markets develop over time and how to predict which shape a market will take long-term (e.g. monopoly, oligopoly ...); look at externalities and their relevancy in a plethora of contexts and also look at how they can be accounted for by policies, this could involve designing your own policies and watching an LLM lead market react to them and its effect on the overall producer / consumer surplus; and much more still to come, potentially even community lead
