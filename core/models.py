@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Literal, Optional
 import random # For RuleBasedAgent decisions
+import logging
 
 # Placeholder imports - these modules will be created/fleshed out later
 # from .llm_client import generate_text # Assuming direct import for now
@@ -301,14 +302,29 @@ class LLMAgent(Agent):
                         continue # Try next line or parsing method
                 # Simpler parsing for lines like "BID: 100" and "QUANTITY: 1" on separate lines
                 if "bid:" in line_lower and price is None:
-                    try: price = float(line.split(":")[1].strip())
-                    except: pass
+                    try:
+                        value_str = line.split(":")[1].strip()
+                        price = float(value_str)
+                    except ValueError:
+                        logging.warning(f"Could not parse price from BID line: {value_str}")
+                    except: # Catch other potential errors like IndexError
+                        logging.warning(f"Error parsing BID line: {line}")
                 if "ask:" in line_lower and price is None:
-                    try: price = float(line.split(":")[1].strip())
-                    except: pass
+                    try:
+                        value_str = line.split(":")[1].strip()
+                        price = float(value_str)
+                    except ValueError:
+                        logging.warning(f"Could not parse price from ASK line: {value_str}")
+                    except:
+                        logging.warning(f"Error parsing ASK line: {line}")
                 if "quantity:" in line_lower and quantity is None:
-                    try: quantity = int(line.split(":")[1].strip())
-                    except: pass
+                    try:
+                        value_str = line.split(":")[1].strip()
+                        quantity = int(value_str)
+                    except ValueError:
+                        logging.warning(f"Could not parse quantity: {value_str}")
+                    except:
+                        logging.warning(f"Error parsing QUANTITY line: {line}")
             
             # If parsed separately, determine action type
             if price is not None and quantity is not None:

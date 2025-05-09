@@ -1,3 +1,5 @@
+# Component of Phase 1-2: Marketplace Module &amp; LLM Agent Integration
+import random
 from typing import List, Dict, Any, Optional
 from core.models import AgentConfig, RuleBasedAgent, LLMAgent, MarketState
 from core.simulation_engine import MarketSimulation
@@ -111,7 +113,6 @@ def run_marketplace_simulation(
     Returns:
         List[MarketState]: The history of market states throughout the simulation.
     """
-    import random # For valuation/cost randomization if used in AgentConfig
 
     agents = setup_simulation_agents(
         num_buyers, buyer_config_params,
@@ -188,7 +189,6 @@ def process_simulation_results_for_display(simulation_history: List[MarketState]
 
 # Example Usage (for testing this file directly):
 if __name__ == "__main__":
-    import random # Required for setup_simulation_agents if using ranges
 
     print("Running Rule-Based Marketplace Simulation Example...")
     

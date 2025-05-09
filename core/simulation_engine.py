@@ -1,3 +1,4 @@
+# Component of Phase 1: Core Simulation Logic &amp; Rule-Based Agents
 from typing import List, Dict, Any, Optional
 from .models import Agent, MarketState, BidAsk, Transaction, AgentConfig, RuleBasedAgent # LLMAgent will be used later
 # from .llm_client import generate_text # Not directly used by engine, but by LLMAgent

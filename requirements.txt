@@ -1,8 +1,6 @@
-streamlit
-pydantic
-google-generativeai
-# Add other dependencies here as needed, e.g.:
-# matplotlib
-# seaborn
-# plotly
-# pytest
+streamlit==1.20.0
+pydantic==2.0.3
+google-generativeai==0.3.0
+pyyaml==6.0
+pytest==7.3.1
+pandas==2.0.3
