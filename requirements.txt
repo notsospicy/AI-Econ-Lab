@@ -1,0 +1,8 @@
+streamlit
+pydantic
+google-generativeai
+# Add other dependencies here as needed, e.g.:
+# matplotlib
+# seaborn
+# plotly
+# pytest
