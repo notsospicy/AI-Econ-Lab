@@ -24,15 +24,15 @@ instructions: |
   Consider your valuation for the good (which is {valuation} per unit for you).
   You should aim to buy below your valuation.
 
+  Please provide your decision in a single-line JSON format. The JSON object should have the following keys:
+  - "action": Your chosen action, which must be one of "BID", "ASK", or "PASS".
+  - "price": The price for your bid or ask. Provide a numerical value. If your action is "PASS", set this to null.
+  - "quantity": The quantity for your bid or ask. Provide an integer. If your action is "PASS", set this to null.
+
+  Example of a valid JSON response for a BID:
+  {"action": "BID", "price": 10.5, "quantity": 5}
+
+  Example of a valid JSON response for a PASS:
+  {"action": "PASS", "price": null, "quantity": null}
 output_format_notes: |
-  Please respond with your decision.
-  If bidding, clearly state:
-  BID: [your_bid_price]
-  QUANTITY: [your_bid_quantity]
-
-  Example if bidding:
-  BID: 105.50
-  QUANTITY: 2
-
-  Example if not bidding:
-  I will wait this round.
+  Please respond with your decision in JSON format as per the instructions.

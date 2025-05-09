@@ -24,15 +24,15 @@ instructions: |
   Consider your cost for the good (which is {cost} per unit for you).
   You should aim to sell above your cost. You have {agent_inventory} units available to sell.
 
+  Please provide your decision in a single-line JSON format. The JSON object should have the following keys:
+  - "action": Your chosen action, which must be one of "BID", "ASK", or "PASS".
+  - "price": The price for your bid or ask. Provide a numerical value. If your action is "PASS", set this to null.
+  - "quantity": The quantity for your bid or ask. Provide an integer. If your action is "PASS", set this to null.
+
+  Example of a valid JSON response for an ASK:
+  {"action": "ASK", "price": 115.0, "quantity": 3}
+
+  Example of a valid JSON response for a PASS:
+  {"action": "PASS", "price": null, "quantity": null}
 output_format_notes: |
-  Please respond with your decision.
-  If placing an ask, clearly state:
-  ASK: [your_ask_price]
-  QUANTITY: [your_ask_quantity]
-
-  Example if placing an ask:
-  ASK: 115.00
-  QUANTITY: 3
-
-  Example if not placing an ask:
-  I will hold my inventory this round.
+  Please respond with your decision in JSON format as per the instructions.

@@ -1,14 +1,22 @@
 import yaml
-import os
+from pathlib import Path
 from typing import Dict, Any, Optional
 
 # Base directory for prompts, relative to the project root.
 PROMPT_CONFIG_BASE_DIR = "config/prompts"
 
-def load_yaml_file(file_path: str) -> Optional[Dict[str, Any]]:
+# Project root directory, assuming this script is in core/
+# AI-Econ-Lab/
+# |-- core/
+# |   |-- prompt_manager.py  <- __file__
+# |-- config/
+# |   |-- prompts/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+def load_yaml_file(file_path: Path) -> Optional[Dict[str, Any]]:
     """Loads a YAML file and returns its content as a dictionary."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with file_path.open('r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
         print(f"Error: Prompt file not found at {file_path}")
@@ -20,15 +28,15 @@ def load_yaml_file(file_path: str) -> Optional[Dict[str, Any]]:
         print(f"An unexpected error occurred while loading {file_path}: {e}")
         return None
 
-def get_prompt(prompt_key: str, module: str = "marketplace") -> Optional[Dict[str, Any]]:
+def get_prompt(prompt_key: str, module_name: str = "marketplace") -> Optional[Dict[str, Any]]:
     """
     Retrieves a prompt structure from a YAML file.
 
     Args:
         prompt_key (str): The key or name of the prompt file (e.g., "buyer_default").
                           The ".yaml" extension is added automatically.
-        module (str): The module directory under PROMPT_CONFIG_BASE_DIR
-                      (e.g., "marketplace").
+        module_name (str): The module directory under PROMPT_CONFIG_BASE_DIR
+                           (e.g., "marketplace").
 
     Returns:
         Optional[Dict[str, Any]]: The loaded prompt structure as a dictionary,
@@ -39,38 +47,43 @@ def get_prompt(prompt_key: str, module: str = "marketplace") -> Optional[Dict[st
     else:
         prompt_filename = prompt_key
 
-    # Construct the full path to the YAML file.
-    # Assumes this script (prompt_manager.py) is in core/
-    # and the AI-Econ-Lab directory is the current working directory or project root.
-    # For robustness, especially if run from different locations, consider absolute paths
-    # or paths relative to a known project root marker.
-    # For now, assuming execution from project root.
-    
-    # project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # Gets AI-Econ-Lab if core/prompt_manager.py
-    # For Streamlit apps, os.getcwd() is usually the project root.
-    project_root = os.getcwd() 
-    file_path = os.path.join(project_root, PROMPT_CONFIG_BASE_DIR, module, prompt_filename)
+    # Construct the path using pathlib
+    # Path is relative to PROJECT_ROOT defined at the top of the file.
+    file_path = PROJECT_ROOT / PROMPT_CONFIG_BASE_DIR / module_name / prompt_filename
     
     # print(f"Attempting to load prompt from: {file_path}") # For debugging path issues
 
     prompt_data = load_yaml_file(file_path)
 
     if prompt_data is None:
-        # Try looking in the module directory directly without a sub-module if not found
-        # e.g. config/prompts/some_general_prompt.yaml
-        file_path_direct = os.path.join(project_root, PROMPT_CONFIG_BASE_DIR, prompt_filename)
-        # print(f"Prompt not found in module '{module}', trying direct path: {file_path_direct}")
+        # Fallback: Try looking in the PROMPT_CONFIG_BASE_DIR directly
+        # (without the module_name subdirectory)
+        file_path_direct = PROJECT_ROOT / PROMPT_CONFIG_BASE_DIR / prompt_filename
+        # print(f"Prompt not found in module '{module_name}', trying direct path: {file_path_direct}")
         prompt_data = load_yaml_file(file_path_direct)
+        
+        if prompt_data is None:
+            # Fallback 2: Try with base_path if PromptManager instance is used (not applicable here directly)
+            # This part is more relevant if this function is part of a class with a base_path attribute.
+            # For now, this function is standalone.
+            # If a PromptManager class existed and had self.base_path:
+            # if hasattr(self, 'base_path') and self.base_path:
+            #    alt_path = Path(self.base_path) / module_name / prompt_filename
+            #    prompt_data = load_yaml_file(alt_path)
+            #    if prompt_data is None:
+            #        alt_path_direct = Path(self.base_path) / prompt_filename
+            #        prompt_data = load_yaml_file(alt_path_direct)
+            pass
+
 
     return prompt_data
 
 # Example usage (for testing this file directly):
 if __name__ == "__main__":
-    # Ensure you run this from the AI-Econ-Lab project root directory for paths to work.
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"Prompt base directory: {os.path.join(os.getcwd(), PROMPT_CONFIG_BASE_DIR)}")
+    print(f"Project root directory: {PROJECT_ROOT}")
+    print(f"Prompt base directory: {PROJECT_ROOT / PROMPT_CONFIG_BASE_DIR}")
 
-    buyer_prompt = get_prompt("buyer_default", module="marketplace")
+    buyer_prompt = get_prompt("buyer_default", module_name="marketplace")
     if buyer_prompt:
         print("\nSuccessfully loaded buyer_default.yaml:")
         print(f"Persona: {buyer_prompt.get('persona')}")
@@ -78,13 +91,13 @@ if __name__ == "__main__":
     else:
         print("\nFailed to load buyer_default.yaml")
 
-    seller_prompt = get_prompt("seller_default.yaml", module="marketplace") # Test with .yaml extension
+    seller_prompt = get_prompt("seller_default.yaml", module_name="marketplace") # Test with .yaml extension
     if seller_prompt:
         print("\nSuccessfully loaded seller_default.yaml:")
         # print(yaml.dump(seller_prompt, indent=2))
         print(f"Persona: {seller_prompt.get('persona')}")
 
-    non_existent_prompt = get_prompt("non_existent_prompt", module="marketplace")
+    non_existent_prompt = get_prompt("non_existent_prompt", module_name="marketplace")
     if not non_existent_prompt:
         print("\nCorrectly failed to load non_existent_prompt.yaml")
 

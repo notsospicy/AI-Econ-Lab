@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Literal, Optional
 import random # For RuleBasedAgent decisions
 import logging
+import json
 
 # Placeholder imports - these modules will be created/fleshed out later
 # from .llm_client import generate_text # Assuming direct import for now
@@ -268,95 +269,97 @@ class LLMAgent(Agent):
 
         # print(f"LLM Agent {self.agent_id} Response: {llm_response_text}")
 
-        # Parse the LLM response (this is a critical and potentially complex step)
-        # For MVP, expect a very specific format like "BID: price QUANTITY: quantity" or "ASK: price QUANTITY: quantity"
+        # Parse the LLM response as JSON
+        action_type_str: Optional[str] = None
+        price_val: Optional[float] = None
+        quantity_val: Optional[int] = None
+
         try:
-            action_type_str = None
-            price = None
-            quantity = None
-
-            lines = llm_response_text.strip().split('\n')
-            for line in lines:
-                line_lower = line.lower()
-                if "bid:" in line_lower and "quantity:" in line_lower: # BID: 100 QUANTITY: 1
-                    parts = line.split()
-                    try:
-                        price_idx = parts.index("BID:") + 1 if "BID:" in parts else parts.index("bid:") + 1
-                        qty_idx = parts.index("QUANTITY:") + 1 if "QUANTITY:" in parts else parts.index("quantity:") + 1
-                        price = float(parts[price_idx])
-                        quantity = int(parts[qty_idx])
-                        action_type_str = "bid"
-                        break
-                    except (ValueError, IndexError):
-                        continue # Try next line or parsing method
-                elif "ask:" in line_lower and "quantity:" in line_lower: # ASK: 100 QUANTITY: 1
-                    parts = line.split()
-                    try:
-                        price_idx = parts.index("ASK:") + 1 if "ASK:" in parts else parts.index("ask:") + 1
-                        qty_idx = parts.index("QUANTITY:") + 1 if "QUANTITY:" in parts else parts.index("quantity:") + 1
-                        price = float(parts[price_idx])
-                        quantity = int(parts[qty_idx])
-                        action_type_str = "ask"
-                        break
-                    except (ValueError, IndexError):
-                        continue # Try next line or parsing method
-                # Simpler parsing for lines like "BID: 100" and "QUANTITY: 1" on separate lines
-                if "bid:" in line_lower and price is None:
-                    try:
-                        value_str = line.split(":")[1].strip()
-                        price = float(value_str)
-                    except ValueError:
-                        logging.warning(f"Could not parse price from BID line: {value_str}")
-                    except: # Catch other potential errors like IndexError
-                        logging.warning(f"Error parsing BID line: {line}")
-                if "ask:" in line_lower and price is None:
-                    try:
-                        value_str = line.split(":")[1].strip()
-                        price = float(value_str)
-                    except ValueError:
-                        logging.warning(f"Could not parse price from ASK line: {value_str}")
-                    except:
-                        logging.warning(f"Error parsing ASK line: {line}")
-                if "quantity:" in line_lower and quantity is None:
-                    try:
-                        value_str = line.split(":")[1].strip()
-                        quantity = int(value_str)
-                    except ValueError:
-                        logging.warning(f"Could not parse quantity: {value_str}")
-                    except:
-                        logging.warning(f"Error parsing QUANTITY line: {line}")
+            data = json.loads(llm_response_text)
             
-            # If parsed separately, determine action type
-            if price is not None and quantity is not None:
-                if action_type_str: # Already determined
-                    pass
-                elif self.agent_type == "buyer": # Infer from agent type if not explicit
-                    action_type_str = "bid"
-                elif self.agent_type == "seller":
-                    action_type_str = "ask"
+            action = data.get("action")
+            # Ensure price and quantity are retrieved correctly, even if they are null in JSON
+            raw_price = data.get("price")
+            raw_quantity = data.get("quantity")
 
-            if action_type_str and price is not None and quantity is not None and price > 0 and quantity > 0:
-                # Validate against agent's capabilities
-                if action_type_str == "bid" and self.agent_type == "buyer":
-                    if self.funds is not None and self.funds >= price * quantity:
-                         return BidAsk(agent_id=self.agent_id, bid_ask_type="bid", price=price, quantity=quantity, round=market_state.current_round)
-                    else:
-                        # print(f"LLM Agent {self.agent_id} wanted to bid {quantity} at {price} but has insufficient funds ({self.funds}).")
-                        pass # Not enough funds
-                elif action_type_str == "ask" and self.agent_type == "seller":
-                    if self.inventory is not None and self.inventory >= quantity:
-                        return BidAsk(agent_id=self.agent_id, bid_ask_type="ask", price=price, quantity=quantity, round=market_state.current_round)
-                    else:
-                        # print(f"LLM Agent {self.agent_id} wanted to ask {quantity} at {price} but has insufficient inventory ({self.inventory}).")
-                        pass # Not enough inventory
-            # else:
-                # print(f"LLM Agent {self.agent_id} did not provide a valid action in response: '{llm_response_text}'")
+            if isinstance(action, str):
+                action_type_str = action.lower()
+            else:
+                logging.warning(f"LLM Agent {self.agent_id} received invalid 'action' type or it's missing: {action}. Response: '{llm_response_text}'")
+                return None
 
-        except Exception as e:
-            print(f"Error parsing LLM response for agent {self.agent_id}: {e}. Response: '{llm_response_text}'")
+            if action_type_str == "pass":
+                price_val = None
+                quantity_val = None
+            else:
+                # Validate action type against agent type early
+                if (action_type_str == "bid" and self.agent_type != "buyer") or \
+                   (action_type_str == "ask" and self.agent_type != "seller"):
+                    logging.warning(f"LLM Agent {self.agent_id} proposed action '{action_type_str}' inconsistent with agent type '{self.agent_type}'. Response: '{llm_response_text}'")
+                    return None
+
+                if raw_price is not None:
+                    try:
+                        price_val = float(raw_price)
+                        if price_val <= 0:
+                            logging.warning(f"LLM Agent {self.agent_id} provided non-positive price: {price_val} for action {action_type_str}. Response: '{llm_response_text}'")
+                            return None
+                    except (ValueError, TypeError):
+                        logging.warning(f"LLM Agent {self.agent_id} received invalid 'price' format: {raw_price} for action {action_type_str}. Response: '{llm_response_text}'")
+                        return None
+                else: # Price is required for non-pass actions
+                    logging.warning(f"LLM Agent {self.agent_id} 'price' is missing for action {action_type_str}. Response: '{llm_response_text}'")
+                    return None
+
+                if raw_quantity is not None:
+                    try:
+                        quantity_val = int(raw_quantity)
+                        if quantity_val <= 0:
+                            logging.warning(f"LLM Agent {self.agent_id} provided non-positive quantity: {quantity_val} for action {action_type_str}. Response: '{llm_response_text}'")
+                            return None
+                    except (ValueError, TypeError):
+                        logging.warning(f"LLM Agent {self.agent_id} received invalid 'quantity' format: {raw_quantity} for action {action_type_str}. Response: '{llm_response_text}'")
+                        return None
+                else: # Quantity is required for non-pass actions
+                    logging.warning(f"LLM Agent {self.agent_id} 'quantity' is missing for action {action_type_str}. Response: '{llm_response_text}'")
+                    return None
+            
+        except json.JSONDecodeError as e:
+            logging.error(f"LLM Agent {self.agent_id} failed to decode LLM response JSON: {e}. Response: '{llm_response_text}'")
+            return None
+        except KeyError as e: # Should be caught by .get() with default None, but good for completeness if direct access was used.
+            logging.error(f"LLM Agent {self.agent_id} missing expected key in LLM response JSON: {e}. Response: '{llm_response_text}'")
+            return None
+        except Exception as e: # Catch any other unexpected errors during parsing/validation
+            logging.error(f"Unexpected error processing LLM response for agent {self.agent_id}: {e}. Response: '{llm_response_text}'")
             return None
 
-        return None # If parsing fails or LLM decides not to act
+        # If action is "pass", return None (no BidAsk object)
+        if action_type_str == "pass":
+            logging.info(f"LLM Agent {self.agent_id} chose to PASS.")
+            return None
+
+        # At this point, for non-PASS actions, action_type_str, price_val, and quantity_val should be valid and positive.
+        # The validation logic for funds and inventory remains.
+        if action_type_str and price_val is not None and quantity_val is not None: # price_val and quantity_val already validated > 0 for non-pass actions
+            if action_type_str == "bid": # Already validated agent_type is "buyer"
+                if self.funds is not None and self.funds >= price_val * quantity_val:
+                    return BidAsk(agent_id=self.agent_id, bid_ask_type="bid", price=price_val, quantity=quantity_val, round=market_state.current_round)
+                else:
+                    logging.info(f"LLM Agent {self.agent_id} wanted to bid {quantity_val} at {price_val} but has insufficient funds ({self.funds}).")
+                    return None
+            elif action_type_str == "ask": # Already validated agent_type is "seller"
+                if self.inventory is not None and self.inventory >= quantity_val:
+                    return BidAsk(agent_id=self.agent_id, bid_ask_type="ask", price=price_val, quantity=quantity_val, round=market_state.current_round)
+                else:
+                    logging.info(f"LLM Agent {self.agent_id} wanted to ask {quantity_val} at {price_val} but has insufficient inventory ({self.inventory}).")
+                    return None
+            # No 'else' needed here as inconsistent action_type/agent_type is handled above.
+        else:
+            # This path should ideally not be reached if logic above is correct for non-PASS actions.
+            # It might be reached if action_type_str was valid but price/quantity became None unexpectedly (e.g. if not "pass" but price/qty were null).
+            logging.warning(f"LLM Agent {self.agent_id} reached end of decision logic without valid action. Action: {action_type_str}, Price: {price_val}, Qty: {quantity_val}. LLM Response: '{llm_response_text}'")
+            return None
 
 # Example of how AgentConfig might be used with Agent (conceptual for now)
 # if __name__ == "__main__":
