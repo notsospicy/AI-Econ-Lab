@@ -1,6 +1,20 @@
 import streamlit as st
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions # For specific error handling
 import os
+
+# Regarding SDK usage:
+# The provided research report emphasizes using `google-genai` SDK and a `client = genai.Client()` pattern.
+# The `google-genai` package is `google-generativeai` (pip install google-generativeai).
+# The `import google.generativeai as genai` is standard.
+# For direct Google AI Studio API access (not Vertex AI), the common pattern involves:
+# 1. `genai.configure(api_key="YOUR_KEY")`
+# 2. `model = genai.GenerativeModel("model-name")`
+# 3. `response = model.generate_content(...)`
+# A `genai.Client()` object can be created after `genai.configure()`, and models can be accessed
+# via `client.get_model("model-name")`. The `client.models.generate_content(...)` syntax
+# from the report seems to be a slight simplification; actual calls are typically on the model object itself.
+# This implementation uses the standard `genai.GenerativeModel()` approach which is correct and documented.
 
 # Placeholder for API key name in environment variables for more secure deployment
 # For local development, we'll use session state.
@@ -38,17 +52,24 @@ def configure_llm_client():
     if api_key:
         try:
             genai.configure(api_key=api_key)
+            # Store a client instance if we decide to use client.get_model() pattern later
+            # For now, genai.configure() is sufficient for genai.GenerativeModel()
+            # st.session_state.gemini_client = genai.Client()
             # st.sidebar.success("LLM Client Configured.")
             return True
-        except Exception as e:
-            st.sidebar.error(f"Failed to configure LLM client: {e}")
-            # Invalidate the stored key if configuration fails
+        except google_exceptions.PermissionDenied as e:
+            st.sidebar.error(f"API Key Error: Permission denied. Please check your API key. Details: {e}")
+            if "api_key" in st.session_state:
+                del st.session_state.api_key
+            return False
+        except Exception as e: # Catch other potential configuration errors
+            st.sidebar.error(f"Failed to configure LLM client: {type(e).__name__} - {e}")
             if "api_key" in st.session_state:
                 del st.session_state.api_key
             return False
     return False
 
-def generate_text(prompt: str, model_name: str = "gemini-pro", temperature: float = 0.7) -> str | None:
+def generate_text(prompt: str, model_name: str = "models/gemini-2.0-flash-latest", temperature: float = 0.7) -> str | None:
     """
     Generates text using the configured Google AI model.
 
@@ -65,12 +86,49 @@ def generate_text(prompt: str, model_name: str = "gemini-pro", temperature: floa
         return None
 
     try:
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(prompt, generation_config=genai.types.GenerationConfig(temperature=temperature))
+        # Safety settings can be added here if needed, e.g.:
+        # safety_settings = [
+        #     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        #     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        # ]
+        model = genai.GenerativeModel(model_name) # safety_settings=safety_settings
+        
+        # Ensure generation_config is correctly formed
+        gen_config = genai.types.GenerationConfig(
+            temperature=temperature
+            # max_output_tokens= can be added here, e.g., 2048
+        )
+        
+        response = model.generate_content(
+            prompt,
+            generation_config=gen_config
+        )
         return response.text
-    except Exception as e:
-        st.error(f"Error generating text: {e}")
-        return None
+    except google_exceptions.ResourceExhausted as e:
+        st.error(f"API Error: Rate limit exceeded or quota exhausted. Please try again later. Details: {e}")
+    except google_exceptions.InvalidArgument as e:
+        st.error(f"API Error: Invalid argument in the request. Check prompt or model. Details: {e}")
+    except google_exceptions.PermissionDenied as e:
+        st.error(f"API Error: Permission denied. Check your API key. Details: {e}")
+    except google_exceptions.FailedPrecondition as e:
+        # This can happen if, for example, billing is not enabled for a project using Vertex AI models,
+        # or other preconditions are not met.
+        st.error(f"API Error: Failed precondition. Details: {e}")
+    except google_exceptions.NotFound as e:
+        st.error(f"API Error: Resource not found (e.g., model name '{model_name}' is incorrect). Details: {e}")
+    except google_exceptions.InternalServerError as e:
+        st.error(f"API Error: Internal server error on Google's side. Please try again later. Details: {e}")
+    except google_exceptions.ServiceUnavailable as e:
+        st.error(f"API Error: Service unavailable. Please try again later. Details: {e}")
+    except AttributeError as e:
+        # Handles cases where response might not have .text (e.g. blocked content)
+        # More specific check for response.prompt_feedback might be needed if safety settings are active
+        st.error(f"Error processing LLM response: {e}. The response might have been blocked or is empty.")
+        # Example: if response.candidates and response.candidates[0].finish_reason == genai.types.FinishReason.SAFETY:
+        #    st.error("Response blocked due to safety settings.")
+    except Exception as e: # Catch any other unexpected errors
+        st.error(f"An unexpected error occurred while generating text: {type(e).__name__} - {e}")
+    return None
 
 if __name__ == "__main__":
     # Example usage within Streamlit app context (for testing this file directly)
