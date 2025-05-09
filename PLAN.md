@@ -200,7 +200,6 @@ For each module, the conceptual plan includes:
 
 *   **User Engagement:** Users spend meaningful time within modules and complete interactive labs.
 *   **Conceptual Understanding:** Users can articulate key concepts after module completion (could be assessed via self-reflection prompts or hypothetical future quizzes).
-*   **Critical AI Perspective:** Users demonstrate an awareness of LLM strengths, weaknesses, and the importance of critical evaluation when reviewing LLM outputs.
 *   **Positive User Feedback:** Qualitative feedback indicating the platform is insightful, engaging, and valuable.
 *   **Observed "Aha!" Moments:** Users express moments of sudden understanding or novel insight.
 
@@ -213,3 +212,4 @@ For each module, the conceptual plan includes:
 *   **Personalized Learning Paths:** Guide users to modules based on their stated interests or performance in previous modules.
 *   **Authoring Tools:** (Very long-term) Allow educators to create their own simple LLM-based interactive scenarios within the platform.
 *   **Localized Content:** Translate the platform and its educational content into other languages.
+*   **Expaning LLM offering:** Expand on the supported AI model APIs, to both enhance the potential upper limit of LLM use through routing mechanisms and also expand on the on the paid offerings to offer even more user freedom.
