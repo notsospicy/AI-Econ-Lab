@@ -103,7 +103,7 @@ def render_marketplace_module():
 
 
             with st.spinner("Running simulation..."):
-                simulation_history = run_marketplace_simulation(
+                simulation_history, error_message = run_marketplace_simulation(
                     num_buyers=num_buyers,
                     buyer_config_params=buyer_config,
                     num_sellers=num_sellers,
@@ -114,17 +114,25 @@ def render_marketplace_module():
                     prompt_manager=prompt_manager_module if st.session_state.marketplace_agent_type == "llm" else None
                 )
             st.session_state.simulation_history = simulation_history
+            st.session_state.simulation_error_message = error_message # Store the error message
             st.session_state.simulation_run_for_display = True # Flag to indicate results are ready
             st.rerun() # Rerun to display results immediately
 
-    if st.session_state.get("simulation_run_for_display", False) and "simulation_history" in st.session_state:
+    if st.session_state.get("simulation_run_for_display", False):
         st.subheader("Simulation Results")
-        history = st.session_state.simulation_history
-        
-        if not history:
+        history = st.session_state.get("simulation_history")
+        error_message = st.session_state.get("simulation_error_message")
+
+        if error_message:
+            st.error(f"Simulation failed or encountered issues: {error_message}")
+            # Optionally, still try to display any partial history if it exists
+            if not history:
+                return # Stop if there's an error and no history at all
+        elif not history:
             st.warning("Simulation completed but produced no history data.")
             return
 
+        # If history exists, even with an error, try to process and display it
         processed_data = process_simulation_results_for_display(history)
 
         # Basic display of results (Phase 1)
@@ -174,6 +182,20 @@ def render_marketplace_module():
         # Educational Content & Reflection (Placeholders)
         st.markdown("---")
         st.subheader("Reflection & Learning")
+        st.markdown("""
+        ### Understanding Key Market Concepts
+
+        Before reflecting on the simulation, let's review some foundational economic ideas:
+
+        **Supply and Demand:** This is the backbone of a market.
+        *   **Demand** refers to how much of a product or service buyers want to purchase at various prices. Generally, as price decreases, demand increases.
+        *   **Supply** refers to how much of a product or service sellers are willing to offer at various prices. Typically, as price increases, sellers are willing to supply more.
+        The interaction between buyers (demand) and sellers (supply) determines market prices and quantities traded.
+
+        **Price Discovery:** This is the process by which a market arrives at a transaction price for a good or service. In this simulation, you observed agents (buyers and sellers) making bids and offers. Through these interactions, a price (or a range of prices) emerges where trades can occur. It's a dynamic process influenced by the valuations of buyers and the costs of sellers.
+
+        **Market Equilibrium:** This is a theoretical state where the quantity of a good supplied is equal to the quantity demanded. At this equilibrium price, there's no surplus or shortage in the market. While real-world markets and simulations might not always reach a perfect, stable equilibrium, they often tend towards it as participants learn and adjust their strategies.
+        """)
         st.markdown("""
         *   What patterns do you observe in the price and volume charts?
         *   How quickly did the market reach a stable price (if at all)?

@@ -1,6 +1,6 @@
 # Component of Phase 1-2: Marketplace Module &amp; LLM Agent Integration
 import random
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from core.models import AgentConfig, RuleBasedAgent, LLMAgent, MarketState
 from core.simulation_engine import MarketSimulation
 # For LLMAgents, we'd need these, but RuleBasedAgent doesn't need them directly here.
@@ -89,9 +89,9 @@ def run_marketplace_simulation(
     num_rounds: int,
     agent_creation_type: str = "rule_based", # "rule_based" or "llm"
     # Pass llm client and prompt manager if using LLM agents
-    llm_client: Optional[Any] = None, 
+    llm_client: Optional[Any] = None,
     prompt_manager: Optional[Any] = None
-) -> List[MarketState]:
+) -> Tuple[List[MarketState], Optional[str]]:
     """
     Sets up and runs a complete marketplace simulation.
 
@@ -111,7 +111,9 @@ def run_marketplace_simulation(
 
 
     Returns:
-        List[MarketState]: The history of market states throughout the simulation.
+        Tuple[List[MarketState], Optional[str]]:
+            The history of market states throughout the simulation,
+            and an optional error message if an LLM agent failed.
     """
 
     agents = setup_simulation_agents(
@@ -123,9 +125,13 @@ def run_marketplace_simulation(
     )
     
     simulation = MarketSimulation(agents=agents, num_rounds=num_rounds)
-    simulation_history = simulation.run_simulation()
+    simulation_history, llm_operational_error = simulation.run_simulation()
     
-    return simulation_history
+    # The llm_operational_error from the engine is the one we want to prioritize.
+    # Any setup errors would ideally be caught before simulation.run_simulation()
+    # or handled differently (e.g., raising an exception).
+    # For now, if llm_operational_error occurs, it's the primary error to report.
+    return simulation_history, llm_operational_error
 
 def process_simulation_results_for_display(simulation_history: List[MarketState]) -> Dict[str, Any]:
     """
@@ -195,7 +201,7 @@ if __name__ == "__main__":
     buyer_params = {"initial_funds": 1000, "valuation_or_cost_range": (100, 150)}
     seller_params = {"initial_inventory": 50, "valuation_or_cost_range": (80, 120)}
     
-    history = run_marketplace_simulation(
+    history, error_message = run_marketplace_simulation(
         num_buyers=5,
         buyer_config_params=buyer_params,
         num_sellers=5,
@@ -203,6 +209,9 @@ if __name__ == "__main__":
         num_rounds=20,
         agent_creation_type="rule_based"
     )
+
+    if error_message:
+        print(f"\nSimulation encountered an error: {error_message}")
 
     if history:
         print(f"\nSimulation completed for {history[-1].current_round} rounds.")
@@ -233,8 +242,8 @@ if __name__ == "__main__":
         if last_price_info:
             print(f"  Avg Price: {last_price_info['average_price']:.2f}, Volume: {last_price_info['volume']}")
 
-    else:
-        print("Simulation did not produce any history.")
+    elif not error_message: # Only print this if no error and no history
+        print("Simulation did not produce any history and no error was reported.")
 
     # Placeholder for LLM agent simulation test (requires dummy/mock llm_client and prompt_manager)
     # print("\nAttempting LLM-Based Marketplace Simulation Example (will fail without mocks)...")

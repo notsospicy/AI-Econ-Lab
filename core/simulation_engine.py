@@ -1,6 +1,6 @@
-# Component of Phase 1: Core Simulation Logic &amp; Rule-Based Agents
-from typing import List, Dict, Any, Optional
-from .models import Agent, MarketState, BidAsk, Transaction, AgentConfig, RuleBasedAgent # LLMAgent will be used later
+# Component of Phase 1: Core Simulation Logic & Rule-Based Agents
+from typing import List, Dict, Any, Optional, Tuple
+from .models import Agent, MarketState, BidAsk, Transaction, AgentConfig, RuleBasedAgent, LLMAgent
 # from .llm_client import generate_text # Not directly used by engine, but by LLMAgent
 # from .prompt_manager import get_prompt # Not directly used by engine, but by LLMAgent
 import random # For shuffling agents
@@ -21,6 +21,7 @@ class MarketSimulation:
         self.num_rounds = num_rounds
         self.market_state = MarketState(current_round=0)
         self.simulation_history: List[MarketState] = [] # To store state after each round
+        self.llm_operational_error: Optional[str] = None # To store the first LLM operational error
 
     def _gather_actions_from_agents(self) -> List[BidAsk]:
         """
@@ -38,6 +39,7 @@ class MarketSimulation:
             # Pass a copy of the market state so agents can't directly mutate the shared state
             # during their decision process.
             action = agent.decide_action(self.market_state.copy(deep=True))
+            
             if action:
                 # Basic validation: buyer bids, seller asks
                 if (action.bid_ask_type == "bid" and agent.agent_type == "buyer") or \
@@ -51,7 +53,12 @@ class MarketSimulation:
                         continue
                     actions.append(action)
                 # else:
-                    # print(f"Warning: Agent {agent.agent_id} type {agent.agent_type} tried to {action.bid_ask_type}. Action ignored.")
+                #     # print(f"Warning: Agent {agent.agent_id} type {agent.agent_type} tried to {action.bid_ask_type}. Action ignored.")
+            elif isinstance(agent, LLMAgent) and self.llm_operational_error is None:
+                # LLM Agent failed to produce an action
+                # self.market_state.current_round is already incremented in run_round before this method is called.
+                self.llm_operational_error = f"LLM Agent '{agent.agent_id}' failed to decide an action in round {self.market_state.current_round}."
+                # print(f"DEBUG: LLM Error recorded: {self.llm_operational_error}") # For debugging
         return actions
 
     def _match_orders_simple_CDA(self, bids: List[BidAsk], asks: List[BidAsk]) -> List[Transaction]:
@@ -186,17 +193,24 @@ class MarketSimulation:
         # self.market_state.asks = [] # Agents resubmit each round
 
 
-    def run_simulation(self):
+    def run_simulation(self) -> Tuple[List[MarketState], Optional[str]]:
         """
         Runs the market simulation for the specified number of rounds.
+        Returns the simulation history and any critical LLM operational error encountered.
         """
         # print(f"Starting simulation with {len(self.agents)} agents for {self.num_rounds} rounds.")
+        self.llm_operational_error = None # Reset error at the beginning of a full simulation run
         for _ in range(self.num_rounds):
             if self.market_state.current_round >= self.num_rounds:
                 break # Ensure we don't exceed num_rounds if called multiple times
             self.run_round()
+            if self.llm_operational_error:
+                # If a critical LLM error occurred, we might stop early or just report it.
+                # For now, we continue simulation but ensure the error is reported.
+                # If we wanted to stop early: break
+                pass 
         # print("\n--- Simulation Ended ---")
-        return self.simulation_history
+        return self.simulation_history, self.llm_operational_error
 
 
 # Example Usage (for testing this file directly):
@@ -215,9 +229,12 @@ if __name__ == "__main__":
     # Initialize and run the simulation
     num_simulation_rounds = 10
     simulation = MarketSimulation(agents=sim_agents, num_rounds=num_simulation_rounds)
-    history = simulation.run_simulation()
+    history, error = simulation.run_simulation() # Adjusted for new return type
 
     print("\n--- Simulation Results ---")
+    if error:
+        print(f"Simulation encountered an error: {error}")
+
     for round_state in history:
         print(f"\nRound: {round_state.current_round}")
         # print(f"  Bids: {[(b.agent_id, b.price, b.quantity) for b in round_state.bids]}")
