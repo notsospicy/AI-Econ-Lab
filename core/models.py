@@ -15,11 +15,19 @@ class AgentConfig(BaseModel):
     """Configuration for an agent in the simulation."""
     agent_id: str = Field(..., description="Unique identifier for the agent")
     agent_type: Literal["buyer", "seller"] = Field(..., description="Type of agent")
-    initial_funds: Optional[float] = Field(None, description="Initial funds for a buyer agent", ge=0)
-    initial_inventory: Optional[int] = Field(None, description="Initial inventory for a seller agent", ge=0)
-    llm_persona_prompt_key: Optional[str] = Field(None, description="Key to retrieve LLM persona/prompt for this agent")
+    initial_funds: Optional[float] = Field(
+        None, description="Initial funds for a buyer agent", ge=0
+    )
+    initial_inventory: Optional[int] = Field(
+        None, description="Initial inventory for a seller agent", ge=0
+    )
+    llm_persona_prompt_key: Optional[str] = Field(
+        None, description="Key to retrieve LLM persona/prompt for this agent"
+    )
     # For rule-based agents, we might have other parameters, e.g., valuation/cost
-    valuation_or_cost: Optional[float] = Field(None, description="Valuation for buyer or cost for seller (for rule-based agents)")
+    valuation_or_cost: Optional[float] = Field(
+        None, description="Valuation for buyer or cost for seller (for rule-based agents)"
+    )
 
 class BidAsk(BaseModel):
     """Represents a bid or an ask in the market."""
@@ -215,11 +223,25 @@ class LLMAgent(Agent):
             "current_round": market_state.current_round,
             "agent_funds": self.funds,
             "agent_inventory": self.inventory,
-            "valuation": self._config.valuation_or_cost if self.agent_type == "buyer" else "N/A",
-            "cost": self._config.valuation_or_cost if self.agent_type == "seller" else "N/A",
-            "recent_transactions_summary": self._format_transaction_summary(market_state.transaction_log),
-            "market_bids_summary": self._format_market_summary([b for b in market_state.bids if b.bid_ask_type == 'bid']),
-            "market_asks_summary": self._format_market_summary([a for a in market_state.asks if a.bid_ask_type == 'ask']),
+            "valuation": (
+                self._config.valuation_or_cost
+                if self.agent_type == "buyer"
+                else "N/A"
+            ),
+            "cost": (
+                self._config.valuation_or_cost
+                if self.agent_type == "seller"
+                else "N/A"
+            ),
+            "recent_transactions_summary": self._format_transaction_summary(
+                market_state.transaction_log
+            ),
+            "market_bids_summary": self._format_market_summary(
+                [b for b in market_state.bids if b.bid_ask_type == 'bid']
+            ),
+            "market_asks_summary": self._format_market_summary(
+                [a for a in market_state.asks if a.bid_ask_type == 'ask']
+            ),
         }
         
         try:
@@ -233,7 +255,10 @@ class LLMAgent(Agent):
                 return None
 
             if instructions_template_str is None: # Should be caught above, but defensive
-                 logging.error(f"Could not extract instruction string for agent {self.agent_id} from prompt: {prompt_template}")
+                 logging.error(
+                     f"Could not extract instruction string for agent {self.agent_id} "
+                     f"from prompt: {prompt_template}"
+                 )
                  return None
 
             try:
@@ -271,7 +296,14 @@ class LLMAgent(Agent):
         # print(formatted_prompt)
         # print("--------------------------------------------------------------------")
 
-        llm_response_text = self.llm_client.generate_text(prompt=full_prompt_text)
+        try:
+            llm_response_text = self.llm_client.generate_text(prompt=full_prompt_text)
+        except Exception as e:
+            logging.error(
+                f"LLM Agent {self.agent_id} encountered an unexpected error during LLM call: {e}. "
+                f"Prompt: '{full_prompt_text}'"
+            )
+            return None
 
         if not llm_response_text:
             print(f"LLM Agent {self.agent_id} received no response from LLM.")
@@ -295,7 +327,10 @@ class LLMAgent(Agent):
             if isinstance(action, str):
                 action_type_str = action.lower()
             else:
-                logging.warning(f"LLM Agent {self.agent_id} received invalid 'action' type or it's missing: {action}. Response: '{llm_response_text}'")
+                logging.warning(
+                    f"LLM Agent {self.agent_id} received invalid 'action' type or "
+                    f"it's missing: {action}. Response: '{llm_response_text}'"
+                )
                 return None
 
             if action_type_str == "pass":
@@ -305,43 +340,78 @@ class LLMAgent(Agent):
                 # Validate action type against agent type early
                 if (action_type_str == "bid" and self.agent_type != "buyer") or \
                    (action_type_str == "ask" and self.agent_type != "seller"):
-                    logging.warning(f"LLM Agent {self.agent_id} proposed action '{action_type_str}' inconsistent with agent type '{self.agent_type}'. Response: '{llm_response_text}'")
+                    logging.warning(
+                        f"LLM Agent {self.agent_id} proposed action '{action_type_str}' "
+                        f"inconsistent with agent type '{self.agent_type}'. "
+                        f"Response: '{llm_response_text}'"
+                    )
                     return None
 
                 if raw_price is not None:
                     try:
                         price_val = float(raw_price)
                         if price_val <= 0:
-                            logging.warning(f"LLM Agent {self.agent_id} provided non-positive price: {price_val} for action {action_type_str}. Response: '{llm_response_text}'")
+                            logging.warning(
+                                f"LLM Agent {self.agent_id} provided non-positive price: "
+                                f"{price_val} for action {action_type_str}. "
+                                f"Response: '{llm_response_text}'"
+                            )
                             return None
                     except (ValueError, TypeError):
-                        logging.warning(f"LLM Agent {self.agent_id} received invalid 'price' format: {raw_price} for action {action_type_str}. Response: '{llm_response_text}'")
+                        logging.warning(
+                            f"LLM Agent {self.agent_id} received invalid 'price' format: "
+                            f"{raw_price} for action {action_type_str}. "
+                            f"Response: '{llm_response_text}'"
+                        )
                         return None
                 else: # Price is required for non-pass actions
-                    logging.warning(f"LLM Agent {self.agent_id} 'price' is missing for action {action_type_str}. Response: '{llm_response_text}'")
+                    logging.warning(
+                        f"LLM Agent {self.agent_id} 'price' is missing for action "
+                        f"{action_type_str}. Response: '{llm_response_text}'"
+                    )
                     return None
 
                 if raw_quantity is not None:
                     try:
                         quantity_val = int(raw_quantity)
                         if quantity_val <= 0:
-                            logging.warning(f"LLM Agent {self.agent_id} provided non-positive quantity: {quantity_val} for action {action_type_str}. Response: '{llm_response_text}'")
+                            logging.warning(
+                                f"LLM Agent {self.agent_id} provided non-positive quantity: "
+                                f"{quantity_val} for action {action_type_str}. "
+                                f"Response: '{llm_response_text}'"
+                            )
                             return None
                     except (ValueError, TypeError):
-                        logging.warning(f"LLM Agent {self.agent_id} received invalid 'quantity' format: {raw_quantity} for action {action_type_str}. Response: '{llm_response_text}'")
+                        logging.warning(
+                            f"LLM Agent {self.agent_id} received invalid 'quantity' format: "
+                            f"{raw_quantity} for action {action_type_str}. "
+                            f"Response: '{llm_response_text}'"
+                        )
                         return None
                 else: # Quantity is required for non-pass actions
-                    logging.warning(f"LLM Agent {self.agent_id} 'quantity' is missing for action {action_type_str}. Response: '{llm_response_text}'")
+                    logging.warning(
+                        f"LLM Agent {self.agent_id} 'quantity' is missing for action "
+                        f"{action_type_str}. Response: '{llm_response_text}'"
+                    )
                     return None
             
         except json.JSONDecodeError as e:
-            logging.error(f"LLM Agent {self.agent_id} failed to decode LLM response JSON: {e}. Response: '{llm_response_text}'")
+            logging.error(
+                f"LLM Agent {self.agent_id} failed to decode LLM response JSON: {e}. "
+                f"Response: '{llm_response_text}'"
+            )
             return None
         except KeyError as e: # Should be caught by .get() with default None, but good for completeness if direct access was used.
-            logging.error(f"LLM Agent {self.agent_id} missing expected key in LLM response JSON: {e}. Response: '{llm_response_text}'")
+            logging.error(
+                f"LLM Agent {self.agent_id} missing expected key in LLM response JSON: {e}. "
+                f"Response: '{llm_response_text}'"
+            )
             return None
         except Exception as e: # Catch any other unexpected errors during parsing/validation
-            logging.error(f"Unexpected error processing LLM response for agent {self.agent_id}: {e}. Response: '{llm_response_text}'")
+            logging.error(
+                f"Unexpected error processing LLM response for agent {self.agent_id}: {e}. "
+                f"Response: '{llm_response_text}'"
+            )
             return None
 
         # If action is "pass", return None (no BidAsk object)
@@ -354,21 +424,43 @@ class LLMAgent(Agent):
         if action_type_str and price_val is not None and quantity_val is not None: # price_val and quantity_val already validated > 0 for non-pass actions
             if action_type_str == "bid": # Already validated agent_type is "buyer"
                 if self.funds is not None and self.funds >= price_val * quantity_val:
-                    return BidAsk(agent_id=self.agent_id, bid_ask_type="bid", price=price_val, quantity=quantity_val, round=market_state.current_round)
+                    return BidAsk(
+                        agent_id=self.agent_id,
+                        bid_ask_type="bid",
+                        price=price_val,
+                        quantity=quantity_val,
+                        round=market_state.current_round
+                    )
                 else:
-                    logging.info(f"LLM Agent {self.agent_id} wanted to bid {quantity_val} at {price_val} but has insufficient funds ({self.funds}).")
+                    logging.info(
+                        f"LLM Agent {self.agent_id} wanted to bid {quantity_val} at {price_val} "
+                        f"but has insufficient funds ({self.funds})."
+                    )
                     return None
             elif action_type_str == "ask": # Already validated agent_type is "seller"
                 if self.inventory is not None and self.inventory >= quantity_val:
-                    return BidAsk(agent_id=self.agent_id, bid_ask_type="ask", price=price_val, quantity=quantity_val, round=market_state.current_round)
+                    return BidAsk(
+                        agent_id=self.agent_id,
+                        bid_ask_type="ask",
+                        price=price_val,
+                        quantity=quantity_val,
+                        round=market_state.current_round
+                    )
                 else:
-                    logging.info(f"LLM Agent {self.agent_id} wanted to ask {quantity_val} at {price_val} but has insufficient inventory ({self.inventory}).")
+                    logging.info(
+                        f"LLM Agent {self.agent_id} wanted to ask {quantity_val} at {price_val} "
+                        f"but has insufficient inventory ({self.inventory})."
+                    )
                     return None
             # No 'else' needed here as inconsistent action_type/agent_type is handled above.
         else:
             # This path should ideally not be reached if logic above is correct for non-PASS actions.
             # It might be reached if action_type_str was valid but price/quantity became None unexpectedly (e.g. if not "pass" but price/qty were null).
-            logging.warning(f"LLM Agent {self.agent_id} reached end of decision logic without valid action. Action: {action_type_str}, Price: {price_val}, Qty: {quantity_val}. LLM Response: '{llm_response_text}'")
+            logging.warning(
+                f"LLM Agent {self.agent_id} reached end of decision logic without "
+                f"valid action. Action: {action_type_str}, Price: {price_val}, "
+                f"Qty: {quantity_val}. LLM Response: '{llm_response_text}'"
+            )
             return None
 
 # Example of how AgentConfig might be used with Agent (conceptual for now)

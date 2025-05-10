@@ -8,7 +8,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from core.models import AgentConfig, RuleBasedAgent, LLMAgent, MarketState, BidAsk, ActionType
+from core.models import AgentConfig, RuleBasedAgent, LLMAgent, MarketState, BidAsk
 from unittest.mock import MagicMock, patch
 
 class TestRuleBasedAgent:
@@ -151,7 +151,7 @@ class TestLLMAgent:
 
         assert isinstance(action, BidAsk)
         assert action.agent_id == "llm_buyer_1"
-        assert action.bid_ask_type == ActionType.BID
+        assert action.bid_ask_type == "bid"
         assert action.price == 110.0
         assert action.quantity == 2
         assert action.round == 1
@@ -166,7 +166,7 @@ class TestLLMAgent:
 
         assert isinstance(action, BidAsk)
         assert action.agent_id == "llm_seller_1"
-        assert action.bid_ask_type == ActionType.ASK
+        assert action.bid_ask_type == "ask"
         assert action.price == 60.0
         assert action.quantity == 3
         assert action.round == 1
@@ -370,7 +370,7 @@ class TestLLMAgent:
         action = agent.decide_action(market_state)
         assert isinstance(action, BidAsk)
         assert action.agent_id == "llm_buyer_1"
-        assert action.bid_ask_type == ActionType.BID
+        assert action.bid_ask_type == "bid"
         assert action.price == 10
         assert action.quantity == 2 # Should be converted to int
 

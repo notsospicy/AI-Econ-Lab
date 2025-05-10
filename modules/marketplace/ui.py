@@ -59,30 +59,94 @@ def render_marketplace_module():
             if llm_configured_successfully: # Only show prompt key inputs if LLM is configured
                 st.session_state.buyer_llm_prompt_key_override = st.sidebar.text_input(
                     "Buyer LLM Prompt Key (optional)",
-                    value=st.session_state.get("buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY),
+                    value=st.session_state.get(
+                        "buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY
+                    ),
                     key="buyer_llm_prompt_key_override_input"
                 )
                 st.session_state.seller_llm_prompt_key_override = st.sidebar.text_input(
                     "Seller LLM Prompt Key (optional)",
-                    value=st.session_state.get("seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY),
+                    value=st.session_state.get(
+                        "seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY
+                    ),
                     key="seller_llm_prompt_key_override_input"
                 )
 
     st.sidebar.markdown("---")
     # Simulation Parameters
-    num_buyers = st.sidebar.number_input("Number of Buyer Agents:", min_value=1, max_value=50, value=st.session_state.get("mp_num_buyers", 5), key="mp_num_buyers")
-    buyer_initial_funds = st.sidebar.number_input("Buyer Initial Funds:", min_value=100, max_value=10000, value=st.session_state.get("mp_buyer_funds", 1000), step=100, key="mp_buyer_funds")
-    buyer_valuation_min = st.sidebar.number_input("Buyer Valuation (Min):", min_value=50, max_value=500, value=st.session_state.get("mp_buyer_val_min", 100), step=10, key="mp_buyer_val_min")
-    buyer_valuation_max = st.sidebar.number_input("Buyer Valuation (Max):", min_value=buyer_valuation_min + 10, max_value=600, value=st.session_state.get("mp_buyer_val_max", 150), step=10, key="mp_buyer_val_max")
+    num_buyers = st.sidebar.number_input(
+        "Number of Buyer Agents:",
+        min_value=1,
+        max_value=50,
+        value=st.session_state.get("mp_num_buyers", 5),
+        key="mp_num_buyers"
+    )
+    buyer_initial_funds = st.sidebar.number_input(
+        "Buyer Initial Funds:",
+        min_value=100,
+        max_value=10000,
+        value=st.session_state.get("mp_buyer_funds", 1000),
+        step=100,
+        key="mp_buyer_funds"
+    )
+    buyer_valuation_min = st.sidebar.number_input(
+        "Buyer Valuation (Min):",
+        min_value=50,
+        max_value=500,
+        value=st.session_state.get("mp_buyer_val_min", 100),
+        step=10,
+        key="mp_buyer_val_min"
+    )
+    buyer_valuation_max = st.sidebar.number_input(
+        "Buyer Valuation (Max):",
+        min_value=buyer_valuation_min + 10,
+        max_value=600,
+        value=st.session_state.get("mp_buyer_val_max", 150),
+        step=10,
+        key="mp_buyer_val_max"
+    )
 
     st.sidebar.markdown("---")
-    num_sellers = st.sidebar.number_input("Number of Seller Agents:", min_value=1, max_value=50, value=st.session_state.get("mp_num_sellers", 5), key="mp_num_sellers")
-    seller_initial_inventory = st.sidebar.number_input("Seller Initial Inventory (per agent):", min_value=1, max_value=1000, value=st.session_state.get("mp_seller_inv", 50), step=10, key="mp_seller_inv")
-    seller_cost_min = st.sidebar.number_input("Seller Cost (Min):", min_value=10, max_value=400, value=st.session_state.get("mp_seller_cost_min", 70), step=10, key="mp_seller_cost_min")
-    seller_cost_max = st.sidebar.number_input("Seller Cost (Max):", min_value=seller_cost_min + 10, max_value=500, value=st.session_state.get("mp_seller_cost_max", 120), step=10, key="mp_seller_cost_max")
+    num_sellers = st.sidebar.number_input(
+        "Number of Seller Agents:",
+        min_value=1,
+        max_value=50,
+        value=st.session_state.get("mp_num_sellers", 5),
+        key="mp_num_sellers"
+    )
+    seller_initial_inventory = st.sidebar.number_input(
+        "Seller Initial Inventory (per agent):",
+        min_value=1,
+        max_value=1000,
+        value=st.session_state.get("mp_seller_inv", 50),
+        step=10,
+        key="mp_seller_inv"
+    )
+    seller_cost_min = st.sidebar.number_input(
+        "Seller Cost (Min):",
+        min_value=10,
+        max_value=400,
+        value=st.session_state.get("mp_seller_cost_min", 70),
+        step=10,
+        key="mp_seller_cost_min"
+    )
+    seller_cost_max = st.sidebar.number_input(
+        "Seller Cost (Max):",
+        min_value=seller_cost_min + 10,
+        max_value=500,
+        value=st.session_state.get("mp_seller_cost_max", 120),
+        step=10,
+        key="mp_seller_cost_max"
+    )
     
     st.sidebar.markdown("---")
-    num_rounds = st.sidebar.number_input("Number of Simulation Rounds:", min_value=1, max_value=100, value=st.session_state.get("mp_num_rounds", 20), key="mp_num_rounds")
+    num_rounds = st.sidebar.number_input(
+        "Number of Simulation Rounds:",
+        min_value=1,
+        max_value=100,
+        value=st.session_state.get("mp_num_rounds", 20),
+        key="mp_num_rounds"
+    )
 
     # Store params in session state to persist them across reruns
     st.session_state.mp_num_buyers = num_buyers
@@ -112,8 +176,12 @@ def render_marketplace_module():
             # Add prompt keys if LLM agents are used
             if st.session_state.marketplace_agent_type == "llm":
                 # Use the override from session_state if available, otherwise default
-                buyer_config["llm_persona_prompt_key"] = st.session_state.get("buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY)
-                seller_config["llm_persona_prompt_key"] = st.session_state.get("seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY)
+                buyer_config["llm_persona_prompt_key"] = st.session_state.get(
+                    "buyer_llm_prompt_key_override", DEFAULT_BUYER_PROMPT_KEY
+                )
+                seller_config["llm_persona_prompt_key"] = st.session_state.get(
+                    "seller_llm_prompt_key_override", DEFAULT_SELLER_PROMPT_KEY
+                )
 
 
             with st.spinner("Running simulation..."):
@@ -124,8 +192,16 @@ def render_marketplace_module():
                     seller_config_params=seller_config,
                     num_rounds=num_rounds,
                     agent_creation_type=st.session_state.marketplace_agent_type,
-                    llm_client=llm_client_module if st.session_state.marketplace_agent_type == "llm" else None,
-                    prompt_manager=prompt_manager_module if st.session_state.marketplace_agent_type == "llm" else None
+                    llm_client=(
+                        llm_client_module
+                        if st.session_state.marketplace_agent_type == "llm"
+                        else None
+                    ),
+                    prompt_manager=(
+                        prompt_manager_module
+                        if st.session_state.marketplace_agent_type == "llm"
+                        else None
+                    )
                 )
             st.session_state.simulation_history = simulation_history
             st.session_state.simulation_error_message = error_message # Store the error message
@@ -202,13 +278,28 @@ def render_marketplace_module():
         Before reflecting on the simulation, let's review some foundational economic ideas:
 
         **Supply and Demand:** This is the backbone of a market.
-        *   **Demand** refers to how much of a product or service buyers want to purchase at various prices. Generally, as price decreases, demand increases.
-        *   **Supply** refers to how much of a product or service sellers are willing to offer at various prices. Typically, as price increases, sellers are willing to supply more.
-        The interaction between buyers (demand) and sellers (supply) determines market prices and quantities traded.
+        *   **Demand** refers to how much of a product or service buyers want to
+            purchase at various prices. Generally, as price decreases, demand
+            increases.
+        *   **Supply** refers to how much of a product or service sellers are
+            willing to offer at various prices. Typically, as price increases,
+            sellers are willing to supply more.
+        The interaction between buyers (demand) and sellers (supply) determines
+        market prices and quantities traded.
 
-        **Price Discovery:** This is the process by which a market arrives at a transaction price for a good or service. In this simulation, you observed agents (buyers and sellers) making bids and offers. Through these interactions, a price (or a range of prices) emerges where trades can occur. It's a dynamic process influenced by the valuations of buyers and the costs of sellers.
+        **Price Discovery:** This is the process by which a market arrives at a
+        transaction price for a good or service. In this simulation, you
+        observed agents (buyers and sellers) making bids and offers. Through
+        these interactions, a price (or a range of prices) emerges where trades
+        can occur. It's a dynamic process influenced by the valuations of
+        buyers and the costs of sellers.
 
-        **Market Equilibrium:** This is a theoretical state where the quantity of a good supplied is equal to the quantity demanded. At this equilibrium price, there's no surplus or shortage in the market. While real-world markets and simulations might not always reach a perfect, stable equilibrium, they often tend towards it as participants learn and adjust their strategies.
+        **Market Equilibrium:** This is a theoretical state where the quantity of a
+        good supplied is equal to the quantity demanded. At this equilibrium
+        price, there's no surplus or shortage in the market. While real-world
+        markets and simulations might not always reach a perfect, stable
+        equilibrium, they often tend towards it as participants learn and
+        adjust their strategies.
         """)
         st.markdown("""
         *   What patterns do you observe in the price and volume charts?
