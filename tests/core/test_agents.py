@@ -336,3 +336,48 @@ class TestLLMAgent:
         agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
         action = agent.decide_action(market_state)
         assert action is None
+
+    def test_decide_action_price_as_non_numeric_string(
+        self, buyer_config, mock_llm_client, mock_prompt_manager, market_state
+    ):
+        mock_llm_client.generate_text.return_value = '{"action": "BID", "price": "ten", "quantity": 1}'
+        agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
+        action = agent.decide_action(market_state)
+        assert action is None
+
+    def test_decide_action_quantity_as_non_integer_string(
+        self, buyer_config, mock_llm_client, mock_prompt_manager, market_state
+    ):
+        mock_llm_client.generate_text.return_value = '{"action": "BID", "price": 10, "quantity": "one"}'
+        agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
+        action = agent.decide_action(market_state)
+        assert action is None
+
+    def test_decide_action_quantity_as_non_integer_convertible_string(
+        self, buyer_config, mock_llm_client, mock_prompt_manager, market_state
+    ):
+        mock_llm_client.generate_text.return_value = '{"action": "BID", "price": 10, "quantity": "1.5"}'
+        agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
+        action = agent.decide_action(market_state)
+        assert action is None
+
+    def test_decide_action_quantity_as_valid_float_integer(
+        self, buyer_config, mock_llm_client, mock_prompt_manager, market_state
+    ):
+        # Buyer has 200 funds, valuation 150. Bid is for 10, quantity 2. Cost = 20. Valid.
+        mock_llm_client.generate_text.return_value = '{"action": "BID", "price": 10, "quantity": 2.0}'
+        agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
+        action = agent.decide_action(market_state)
+        assert isinstance(action, BidAsk)
+        assert action.agent_id == "llm_buyer_1"
+        assert action.bid_ask_type == ActionType.BID
+        assert action.price == 10
+        assert action.quantity == 2 # Should be converted to int
+
+    def test_decide_action_unrecognized_action_string(
+        self, buyer_config, mock_llm_client, mock_prompt_manager, market_state
+    ):
+        mock_llm_client.generate_text.return_value = '{"action": "HOLD", "price": 10, "quantity": 1}'
+        agent = LLMAgent(config=buyer_config, llm_client=mock_llm_client, prompt_manager=mock_prompt_manager)
+        action = agent.decide_action(market_state)
+        assert action is None

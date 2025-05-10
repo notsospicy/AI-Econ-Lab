@@ -179,19 +179,6 @@ def process_simulation_results_for_display(simulation_history: List[MarketState]
                     "quantity": tx.quantity
                 })
                 
-    # Ensure all lists have the same length for plotting
-    max_len = len(results["rounds"])
-    for key in ["average_prices", "volumes", "num_transactions_per_round"]:
-        if len(results[key]) < max_len:
-            # Pad with Nones or last known value if appropriate
-            padding = [None] * (max_len - len(results[key]))
-            if results[key] and key == "average_prices": # Carry forward last price
-                 padding = [results[key][-1]] * (max_len - len(results[key]))
-            elif key != "average_prices": # Pad with 0 for volume/tx count
-                 padding = [0] * (max_len - len(results[key]))
-
-            results[key].extend(padding)
-            
     return results
 
 

@@ -236,6 +236,72 @@ class TestLLMClientFunctions:
         mock_st_error.assert_called_once()
         assert "API Error: Invalid argument in the request." in mock_st_error.call_args[0][0]
 
+    @patch('core.llm_client.configure_llm_client', return_value=True)
+    @patch('core.llm_client.genai.GenerativeModel')
+    @patch('core.llm_client.st.error')
+    def test_generate_text_google_api_error_permission_denied(self, mock_st_error, mock_generative_model, mock_configure_llm):
+        mock_model_instance = MagicMock()
+        mock_model_instance.generate_content.side_effect = google_api_exceptions.PermissionDenied("Permission denied by API")
+        mock_generative_model.return_value = mock_model_instance
+
+        result = generate_text("Test prompt for permission denied")
+        assert result is None
+        mock_st_error.assert_called_once()
+        assert "API Error: Permission denied. Check your API key." in mock_st_error.call_args[0][0]
+
+    @patch('core.llm_client.configure_llm_client', return_value=True)
+    @patch('core.llm_client.genai.GenerativeModel')
+    @patch('core.llm_client.st.error')
+    def test_generate_text_google_api_error_failed_precondition(self, mock_st_error, mock_generative_model, mock_configure_llm):
+        mock_model_instance = MagicMock()
+        mock_model_instance.generate_content.side_effect = google_api_exceptions.FailedPrecondition("Failed precondition")
+        mock_generative_model.return_value = mock_model_instance
+
+        result = generate_text("Test prompt for failed precondition")
+        assert result is None
+        mock_st_error.assert_called_once()
+        assert "API Error: Failed precondition." in mock_st_error.call_args[0][0]
+
+    @patch('core.llm_client.configure_llm_client', return_value=True)
+    @patch('core.llm_client.genai.GenerativeModel')
+    @patch('core.llm_client.st.error')
+    def test_generate_text_google_api_error_not_found(self, mock_st_error, mock_generative_model, mock_configure_llm):
+        mock_model_instance = MagicMock()
+        model_name_used = "non-existent-model"
+        mock_model_instance.generate_content.side_effect = google_api_exceptions.NotFound(f"Model {model_name_used} not found")
+        mock_generative_model.return_value = mock_model_instance
+
+        result = generate_text("Test prompt for not found", model_name=model_name_used)
+        assert result is None
+        mock_st_error.assert_called_once()
+        assert f"API Error: Resource not found (e.g., model name '{model_name_used}' is incorrect)." in mock_st_error.call_args[0][0]
+
+    @patch('core.llm_client.configure_llm_client', return_value=True)
+    @patch('core.llm_client.genai.GenerativeModel')
+    @patch('core.llm_client.st.error')
+    def test_generate_text_google_api_error_internal_server_error(self, mock_st_error, mock_generative_model, mock_configure_llm):
+        mock_model_instance = MagicMock()
+        mock_model_instance.generate_content.side_effect = google_api_exceptions.InternalServerError("Internal server error")
+        mock_generative_model.return_value = mock_model_instance
+
+        result = generate_text("Test prompt for internal server error")
+        assert result is None
+        mock_st_error.assert_called_once()
+        assert "API Error: Internal server error on Google's side." in mock_st_error.call_args[0][0]
+
+    @patch('core.llm_client.configure_llm_client', return_value=True)
+    @patch('core.llm_client.genai.GenerativeModel')
+    @patch('core.llm_client.st.error')
+    def test_generate_text_google_api_error_service_unavailable(self, mock_st_error, mock_generative_model, mock_configure_llm):
+        mock_model_instance = MagicMock()
+        mock_model_instance.generate_content.side_effect = google_api_exceptions.ServiceUnavailable("Service unavailable")
+        mock_generative_model.return_value = mock_model_instance
+
+        result = generate_text("Test prompt for service unavailable")
+        assert result is None
+        mock_st_error.assert_called_once()
+        assert "API Error: Service unavailable." in mock_st_error.call_args[0][0]
+
     # Test for ValueError (as requested, though not explicitly handled for blocked content in current code)
     # The current code catches general Exception for this.
     @patch('core.llm_client.configure_llm_client', return_value=True)
